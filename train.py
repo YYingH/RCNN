@@ -160,16 +160,16 @@ def dataset_split(path_train_face, path_train_background, path_val):
 
 if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-    data_is_prepared = False
+    data_is_prepared = True
     classify_model = True
     path_train = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/train/'
     path_val = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/test/'
 
     if data_is_prepared == False:
         print("Start to prepare dataset")
-        # annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
-        # datasets = Data(annotations)
-        # prepare_data(datasets, annotations, threthoud = 0.3, save_path = 'data/FDDB_crop/iou_0.3/')
+        annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
+        datasets = Data(annotations)
+        prepare_data(datasets, annotations, threthoud = 0.3, save_path = 'data/FDDB_crop/iou_0.3/')
         dataset_split(path_train + '1/', path_train + '0/', path_val)
     
     if classify_model == False:
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         train_iterator, val_iterator = load_classify_data(path_train, path_val, batch_size = 32, input_size=227)
         model = GoogLeNet(num_classes = 2)
         is_cuda = torch.cuda.is_available()
-        weights = torch.FloatTensor([19.33,1.0])
+        weights = torch.FloatTensor([1.0,33.5])
         if is_cuda:
             model = model.cuda()
             weights = weights.cuda()
