@@ -3,9 +3,7 @@ import logging
 import torch
 import os
 import torch.nn as nn
-import numpy as np
 import pickle
-import tqdm
 from datasets import Data
 from utils import convert_to_xywh, ellipse_to_rectangle, IOU_calculator, crop_image
 from utils import read_from_file, load_classify_data
