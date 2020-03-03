@@ -18,28 +18,31 @@ from torchvision import transforms, datasets
 from torch.utils.data import DataLoader,WeightedRandomSampler
 
 
-def cv2_plot_ellipse(img, n, locations):
+def cv2_plot_ellipse(image_dir, n, locations, image = None):
     """ Draw elliptical boxes on the image """
     major_axis_radius, minor_axis_radius, angle, center_x, center_y = locations
+    image = cv2.imread(image_dir) if image == None else image
     for i in range(n):
-        cv2.ellipse(img, center = (int(center_x[i]), int(center_y[i])), 
+        cv2.ellipse(image, center = (int(center_x[i]), int(center_y[i])), 
         axes = (int(minor_axis_radius[i]), int(major_axis_radius[i])),
         angle = angle[i], startAngle = 0, endAngle = 360, color = 255)
-    cv2.imshow('image', img)
+    cv2.imshow('image', image)
     cv2.waitKey(0)
 
 
-def cv2_plot_rectangle(img, n, pts):
+def cv2_plot_rectangle(image_dir, n, pts, image = None):
     """ Draw rectangular boxes on the image """
+    image = cv2.imread(image_dir) if image == None else image
     for pt in pts:
-        cv2.rectangle(img, pt1=pt[0], pt2=pt[1], color=(255, 0, 255))
-    cv2.imshow('image', img)
+        cv2.rectangle(image_dir, pt1=pt[0], pt2=pt[1], color=(255, 0, 255))
+    cv2.imshow('image', image_dir)
     cv2.waitKey(0)
 
 
-def plt_plot_rectangle(img, locations):
+def plt_plot_rectangle(image_dir, locations, image = None):
     fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(6, 6))
-    ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    image = cv2.imread(image_dir) if image == None else image
+    ax.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     for x, y, w, h in locations:
         rect = mpatches.Rectangle(
             (x, y), w, h, fill=False, edgecolor='red', linewidth=1)
@@ -58,7 +61,7 @@ def ellipse_to_rectangle(n, locations):
     return pt
 
 
-def convert_to_xywh(image, pts):
+def convert_to_xywh(pts):
     """ convert coordinate to xywh format """
     boxes = []
     for pt1, pt2 in pts:
@@ -108,9 +111,10 @@ def IOU_calculator(x1, y1, w1, h1, x2, y2, w2, h2):
         iou = inter_square/union_square * 1.0
     return iou
 
-def crop_image(img, gt):
+def crop_image(image_dir, gt, image = None):
+    image = cv2.imread(image_dir) if image == None else image
     x, y, w, h = gt
-    return img[y:y+h, x:x+w]
+    return image[y:y+h, x:x+w]
 
 
 

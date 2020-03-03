@@ -4,55 +4,78 @@ import torch
 import os
 import torch.nn as nn
 import numpy as np
+import pickle
+import tqdm
 from datasets import Data
-from PIL import Image
-from utils import convert_to_xywh, plt_plot_rectangle, ellipse_to_rectangle, IOU_calculator, crop_image
+from utils import convert_to_xywh, ellipse_to_rectangle, IOU_calculator, crop_image
 from utils import read_from_file, load_classify_data
 from selective_search import selective_search
 from GoogLeNet import GoogLeNet
 
 Max_acc = 0
+COUNT_FACE, COUNT_BACKGROUND = 0, 0
 
-def generate_selective_search(img):
+def generate_selective_search(image_dir):
+    img = cv2.imread(image_dir)
     img_lbl, regions = selective_search(
-        img, scale=1.0, sigma=0.8, min_size=50)
+        img, scale=500, sigma=0.8, min_size=10)
     candidates = set()
     for r in regions:
     # excluding same rectangle (with different segments)
         if r['rect'] in candidates:
             continue
-        # excluding regions smaller than 1000 pixels
-        if r['size'] < 2500:
+        # excluding regions smaller than 220 pixels
+        if r['size'] < 220:
             continue
         # distorted rects
         x, y, w, h = r['rect']
+        if w == 0 or h == 0:
+            continue
         if w / h > 2.5 or h / w > 2.5:
             continue
         candidates.add(r['rect'])
     return candidates
 
 
-def prepare_data(image, gts, path_train, path_test):
-    count_pos, count_neg = 0, 0
-    for gt in gts:
-        img = crop_image(image, gt)
-        cv2.imwrite(path_train + str(count_pos) + '.jpg', img)
-        count_pos += 1
-    for candidate in generate_selective_search(image):
-        x, y, w, h = candidate
-        ious = []
+def prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pkl'):
+    global COUNT_FACE, COUNT_BACKGROUND
+    images, labels = [], []
+    for i in range(len(datasets)):
+        image_dir, num_of_faces, gts = datasets[i]
+        gts = convert_to_xywh(ellipse_to_rectangle(num_of_faces, gts))
+
         for gt in gts:
-            ious.append(IOU_calculator(x+2/w, y+h/2, w, h,
-                gt[0]+gt[2]/2, gt[1]+gt[3]/2, gt[2], gt[3]))
-        iou = max(ious)
-        if iou >= 0.65:
-            img = crop_image(image, candidate)
-            cv2.imwrite(path_train + str(count_pos) + '.jpg', img)
-            count_pos += 1
-        elif iou == 0:
-            img = crop_image(image, candidate)
-            cv2.imwrite(path_test + str(count_neg) + '.jpg', img)
-            count_neg += 1
+            img = crop_image(image_dir, gt)
+            if len(img) == 0:
+                continue
+            a, b, c = img.shape
+            if a == 0 or b == 0 or c == 0:
+                continue
+            COUNT_FACE += 1
+            images.append(img)
+            labels.append(1)
+
+        for candidate in generate_selective_search(image_dir):
+            x, y, w, h = candidate
+            ious = []
+            img = crop_image(image_dir, candidate)
+            if len(img) == 0:
+                continue
+            for gt in gts:
+                ious.append(IOU_calculator(x+2/w, y+h/2, w, h,
+                    gt[0]+gt[2]/2, gt[1]+gt[3]/2, gt[2], gt[3]))
+            if max(ious) >= threthoud:
+                COUNT_FACE += 1
+                images.append(img)
+                labels.append(1)
+            else:
+                COUNT_BACKGROUND += 1
+                images.append(img)
+                labels.append(0)
+        print(f"====>>> {i}/{len(datasets)}: Face: {COUNT_FACE}, Background: {COUNT_BACKGROUND}")
+    pickle.dump((images, labels), open(save_path, 'wb'))
+    
+        
 
 
 def calculate_accuracy(fx, y):
@@ -114,27 +137,20 @@ def train(epoch, model, train_iterator, val_iterator, optimizer, criterion, mode
                 param_group['lr'] = lr
 
 
-    
-
 
 
 if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-    data_is_prepared = True
-    classify_model = False
+    data_is_prepared = False
+    classify_model = True
     path_train = PROJECT_ROOT + '/data/FDDB_crop/train/'
     path_test = PROJECT_ROOT + '/data/FDDB_crop/test/'
-    
+
     if data_is_prepared == False:
+        print("Start to prepare dataset")
         annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
         datasets = Data(annotations)
-        for i in range(len(datasets)):
-            image, image_dir, num_of_faces, gt_box = datasets[i]
-            gt_box = convert_to_xywh(image, ellipse_to_rectangle(num_of_faces, gt_box))
-            # plt_plot_rectangle(image, gt_box)
-            # candidates = generate_selective_search(image, gt_box)
-            # plt_plot_rectangle(image, candidates)
-            prepare_data(image, gt_box, path_train + str(i) + '_', path_test + str(i) + '_')
+        prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pkl')
     
     if classify_model == False:
         model_path = [PROJECT_ROOT, "/model/","","_GoogLeNet.pt"]

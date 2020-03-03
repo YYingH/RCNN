@@ -19,8 +19,7 @@ class Data(object):
             angle.append(float(position[2]))
             center_x.append(int(float(position[3])))
             center_y.append(int(float(position[4])))
-            image = cv2.imread(image_dir)
-        return (image, image_dir, num_of_faces, [major_axis_radius, minor_axis_radius, angle, center_x, center_y])
+        return (image_dir, num_of_faces, [major_axis_radius, minor_axis_radius, angle, center_x, center_y])
 
 
     def __len__(self):
