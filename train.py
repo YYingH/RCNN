@@ -3,7 +3,8 @@ import logging
 import torch
 import os
 import torch.nn as nn
-import pickle
+import random
+import shutil
 from datasets import Data
 from utils import convert_to_xywh, ellipse_to_rectangle, IOU_calculator, crop_image
 from utils import read_from_file, load_classify_data
@@ -35,9 +36,8 @@ def generate_selective_search(image_dir):
     return candidates
 
 
-def prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pkl'):
+def prepare_data(datasets, annotations, threthoud, save_path):
     global COUNT_FACE, COUNT_BACKGROUND
-    images, labels = [], []
     for i in range(len(datasets)):
         image_dir, num_of_faces, gts = datasets[i]
         gts = convert_to_xywh(ellipse_to_rectangle(num_of_faces, gts))
@@ -50,8 +50,8 @@ def prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pk
             if a == 0 or b == 0 or c == 0:
                 continue
             COUNT_FACE += 1
-            images.append(img)
-            labels.append(1)
+            path = ''.join([save_path, '1/', str(i), '_', str(COUNT_FACE), '.jpg'])
+            cv2.imwrite(path, img)
 
         for candidate in generate_selective_search(image_dir):
             x, y, w, h = candidate
@@ -64,14 +64,13 @@ def prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pk
                     gt[0]+gt[2]/2, gt[1]+gt[3]/2, gt[2], gt[3]))
             if max(ious) >= threthoud:
                 COUNT_FACE += 1
-                images.append(img)
-                labels.append(1)
+                path = ''.join([save_path, '1/', str(i), '_', str(COUNT_FACE), '.jpg'])
+                cv2.imwrite(path, img)
             else:
                 COUNT_BACKGROUND += 1
-                images.append(img)
-                labels.append(0)
+                path = ''.join([save_path, '0/', str(i), '_', str(COUNT_BACKGROUND), '.jpg'])
+                cv2.imwrite(path, img)
         print(f"====>>> {i}/{len(datasets)}: Face: {COUNT_FACE}, Background: {COUNT_BACKGROUND}")
-    pickle.dump((images, labels), open(save_path, 'wb'))
     
         
 
@@ -134,6 +133,28 @@ def train(epoch, model, train_iterator, val_iterator, optimizer, criterion, mode
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
 
+def dataset_split(path_train_face, path_train_background, path_val):
+    face_val, background_val = 0, 0
+    for path, dir_list, file_list in os.walk(path_train_face):
+        for file_name in file_list:
+            if random.randint(0, 10) == 0:
+                face_val += 1
+                path_ori = os.path.join(path, file_name)
+                path_target = path_ori.replace('train/','val/')
+                shutil.move(path_ori, path_target)
+    for path, dir_list, file_list in os.walk(path_train_background):
+        for file_name in file_list:
+            if random.randint(0, 200) == 0:
+                background_val += 1
+                path_ori = os.path.join(path, file_name)
+                path_target = path_ori.replace('train/','val/')
+                shutil.move(path_ori, path_target)
+    print(f'Validation dataset build finished! face: {face_val}, background: {background_val}')
+
+
+    
+
+
 
 
 
@@ -141,20 +162,21 @@ if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
     data_is_prepared = False
     classify_model = True
-    path_train = PROJECT_ROOT + '/data/FDDB_crop/train/'
-    path_test = PROJECT_ROOT + '/data/FDDB_crop/test/'
+    path_train = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/train/'
+    path_val = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/test/'
 
     if data_is_prepared == False:
         print("Start to prepare dataset")
-        annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
-        datasets = Data(annotations)
-        prepare_data(datasets, annotations, threthoud = 0.5, save_path = 'dataset.pkl')
+        # annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
+        # datasets = Data(annotations)
+        # prepare_data(datasets, annotations, threthoud = 0.3, save_path = 'data/FDDB_crop/iou_0.3/')
+        dataset_split(path_train + '1/', path_train + '0/', path_val)
     
     if classify_model == False:
         model_path = [PROJECT_ROOT, "/model/","","_GoogLeNet.pt"]
         learning_rate = 1e-4
         logging.basicConfig(level=logging.INFO,filename=PROJECT_ROOT + '/log/GoogLeNet.log',format="%(message)s")
-        train_iterator, val_iterator = load_classify_data(path_train, path_test, batch_size = 32, input_size=227)
+        train_iterator, val_iterator = load_classify_data(path_train, path_val, batch_size = 32, input_size=227)
         model = GoogLeNet(num_classes = 2)
         is_cuda = torch.cuda.is_available()
         weights = torch.FloatTensor([19.33,1.0])
