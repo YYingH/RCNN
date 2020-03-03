@@ -141,9 +141,10 @@ if __name__ == "__main__":
         train_iterator, val_iterator = load_classify_data(path_train, path_test, batch_size = 32, input_size=224)
         model = GoogLeNet(num_classes = 2)
         is_cuda = torch.cuda.is_available()
+        weights = torch.FloatTensor([19.33,1.0])
         if is_cuda:
             model = model.cuda()
-        weights = torch.FloatTensor([19.33,1.0])
+            weights = weights.cuda()
         criterion = nn.CrossEntropyLoss(weights)
         # criterion = nn.BCEWithLogitsLoss(pos_weight=weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
