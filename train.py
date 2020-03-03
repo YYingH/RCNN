@@ -1,6 +1,7 @@
 import cv2
 import logging
 import torch
+import os
 import torch.nn as nn
 import numpy as np
 from datasets import Data
@@ -81,7 +82,7 @@ def evaluate(epoch, model, iterator, optimizer, criterion):
     logging.info(f"Test: [{epoch}] >>> the accuracy is [{epoch_acc / len(iterator):.4f}]")           
     return epoch_acc / len(iterator)
         
-def train(epoch, model, train_iterator, val_iterator, optimizer, criterion):
+def train(epoch, model, train_iterator, val_iterator, optimizer, criterion, model_path):
     global Max_acc
     epoch_loss, epoch_acc = 0, 0 
     i = 0
@@ -103,7 +104,7 @@ def train(epoch, model, train_iterator, val_iterator, optimizer, criterion):
         if i % 40 == 0:
             test_acc = evaluate(epoch, model, val_iterator, optimizer, criterion)
             if test_acc > Max_acc:
-                model_path[1] = "{:.4f}".format(test_acc)
+                model_path[2] = "{:.4f}".format(test_acc)
                 Max_acc = test_acc
                 torch.save(model.state_dict(), "".join(model_path))
         # VGG
@@ -118,14 +119,15 @@ def train(epoch, model, train_iterator, val_iterator, optimizer, criterion):
 
 
 if __name__ == "__main__":
+    PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
     data_is_prepared = True
     classify_model = False
-    annotations = read_from_file("data/FDDB/FDDB-folds/")
-    datasets = Data(annotations)
-    path_train = 'data/FDDB_crop/train/'
-    path_test = 'data/FDDB_crop/test/'
+    path_train = PROJECT_ROOT + '/data/FDDB_crop/train/'
+    path_test = PROJECT_ROOT + '/data/FDDB_crop/test/'
     
     if data_is_prepared == False:
+        annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
+        datasets = Data(annotations)
         for i in range(len(datasets)):
             image, image_dir, num_of_faces, gt_box = datasets[i]
             gt_box = convert_to_xywh(image, ellipse_to_rectangle(num_of_faces, gt_box))
@@ -135,10 +137,10 @@ if __name__ == "__main__":
             prepare_data(image, gt_box, path_train + str(i) + '_', path_test + str(i) + '_')
     
     if classify_model == False:
-        model_path = ["model/","","_GoogLeNet.pt"]
+        model_path = [PROJECT_ROOT, "/model/","","_GoogLeNet.pt"]
         learning_rate = 1e-4
-        logging.basicConfig(level=logging.INFO,filename='log/GoogLeNet.log',format="%(message)s")
-        train_iterator, val_iterator = load_classify_data(path_train, path_test, batch_size = 32, input_size=224)
+        logging.basicConfig(level=logging.INFO,filename=PROJECT_ROOT + '/log/GoogLeNet.log',format="%(message)s")
+        train_iterator, val_iterator = load_classify_data(path_train, path_test, batch_size = 32, input_size=227)
         model = GoogLeNet(num_classes = 2)
         is_cuda = torch.cuda.is_available()
         weights = torch.FloatTensor([19.33,1.0])
@@ -146,9 +148,8 @@ if __name__ == "__main__":
             model = model.cuda()
             weights = weights.cuda()
         criterion = nn.CrossEntropyLoss(weights)
-        # criterion = nn.BCEWithLogitsLoss(pos_weight=weights)
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         for epoch in range(100):
-            train_loss = train(epoch, model, train_iterator,val_iterator, optimizer, criterion)
+            train_loss = train(epoch, model, train_iterator,val_iterator, optimizer, criterion, model_path)
 
 
