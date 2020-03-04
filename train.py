@@ -129,7 +129,7 @@ def train(epoch, model, train_iterator, val_iterator, optimizer, criterion, mode
                 torch.save(model.state_dict(), "".join(model_path))
         # VGG
         if epoch>0 and epoch%20 == 0:
-            lr = learning_rate * (0.5 ** (epoch // 30))
+            lr = learning_rate * (0.5 ** (epoch // 20))
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
 
@@ -161,9 +161,9 @@ def dataset_split(path_train_face, path_train_background, path_val):
 if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
     data_is_prepared = True
-    classify_model = True
+    classify_model = False
     path_train = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/train/'
-    path_val = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/test/'
+    path_val = PROJECT_ROOT + '/data/FDDB_crop/iou_0.5/val/'
 
     if data_is_prepared == False:
         print("Start to prepare dataset")
