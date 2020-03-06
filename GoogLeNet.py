@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+
 class FlattenLayer(nn.Module):
     def __init__(self):
         super().__init__()
@@ -69,20 +70,32 @@ class GoogLeNet(nn.Module):
             nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         )
         
-        self.b5 = nn.Sequential(
+        self.b5_1 = nn.Sequential(
             Inception(832, 256, (160, 320), (32, 128), 128),
             Inception(832, 384, (192, 384), (48, 128), 128),
-            GlobalAvgPool2d(),
+            GlobalAvgPool2d()
+        )
+        
+        self.b5_2 = nn.Sequential(
             nn.Dropout(0.4),
             FlattenLayer(),
             nn.Linear(1024, self.num_classes)
         )
 
-        self.net = nn.Sequential(
-            self.b1, self.b2, self.b3, self.b4, self.b5
-        )
+        # self.b5 = nn.Sequential(
+        #     Inception(832, 256, (160, 320), (32, 128), 128),
+        #     Inception(832, 384, (192, 384), (48, 128), 128),
+        #     GlobalAvgPool2d()
+        # )
+
+        # self.net = nn.Sequential(
+        #     self.b1, self.b2, self.b3, self.b4, self.b5
+        # )
     def forward(self, x):
-        return self.net(x)
+        x = self.b4(self.b3(self.b2(self.b1(x))))
+        x = self.b5_1(x)
+        x = self.b5_2(x)
+        return x
 
 if __name__ == "__main__":
     model = GoogLeNet(num_classes = 2)
