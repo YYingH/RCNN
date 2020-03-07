@@ -39,8 +39,9 @@ class Inception(nn.Module):
         return torch.cat((p1, p2, p3, p4), dim = 1)
 
 class GoogLeNet(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, is_train):
         super().__init__()
+        self.is_train = is_train
         self.num_classes = num_classes
         self.b1 = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3),
@@ -82,20 +83,15 @@ class GoogLeNet(nn.Module):
             nn.Linear(1024, self.num_classes)
         )
 
-        # self.b5 = nn.Sequential(
-        #     Inception(832, 256, (160, 320), (32, 128), 128),
-        #     Inception(832, 384, (192, 384), (48, 128), 128),
-        #     GlobalAvgPool2d()
-        # )
-
-        # self.net = nn.Sequential(
-        #     self.b1, self.b2, self.b3, self.b4, self.b5
-        # )
     def forward(self, x):
         x = self.b4(self.b3(self.b2(self.b1(x))))
         x = self.b5_1(x)
-        x = self.b5_2(x)
-        return x
+        if self.is_train:
+            x = self.b5_2(x)
+            return x
+        else:
+            self.featuremap1 = x.detach()
+            return self.featuremap1
 
 if __name__ == "__main__":
     model = GoogLeNet(num_classes = 2)

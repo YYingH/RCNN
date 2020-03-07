@@ -80,7 +80,7 @@ if __name__ == "__main__":
     learning_rate = 1e-4
     logging.basicConfig(level=logging.INFO,filename=PROJECT_ROOT + '/log/GoogLeNet.log',format="%(message)s")
     train_iterator, val_iterator = load_classify_data(path_train, path_val, batch_size = 16, input_size=227)
-    model = GoogLeNet(num_classes = 2)
+    model = GoogLeNet(num_classes = 2, is_train = True)
     weights = torch.FloatTensor([1.0,33.5])
     if torch.cuda.is_available():
         model = model.cuda()

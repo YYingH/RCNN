@@ -29,7 +29,7 @@ def generate_selective_search(image_dir):
         candidates.add(r['rect'])
     return candidates
 
-def prepare_data(datasets, annotations, threthoud, save_path):
+def prepare_data(datasets, annotations, threthoud_pos, threthoud_neg, save_path):
     global COUNT_FACE, COUNT_BACKGROUND
     for i in range(len(datasets)):
         image_dir, num_of_faces, gts = datasets[i]
@@ -55,11 +55,11 @@ def prepare_data(datasets, annotations, threthoud, save_path):
             for gt in gts:
                 ious.append(IOU_calculator(x+2/w, y+h/2, w, h,
                     gt[0]+gt[2]/2, gt[1]+gt[3]/2, gt[2], gt[3]))
-            if max(ious) >= threthoud:
+            if max(ious) > threthoud_pos:
                 COUNT_FACE += 1
                 path = ''.join([save_path, '1/', str(i), '_', str(COUNT_FACE), '.jpg'])
                 cv2.imwrite(path, img)
-            else:
+            elif max(ious) < threthoud_neg:
                 COUNT_BACKGROUND += 1
                 path = ''.join([save_path, '0/', str(i), '_', str(COUNT_BACKGROUND), '.jpg'])
                 cv2.imwrite(path, img)
@@ -87,12 +87,12 @@ def dataset_split(path_train_face, path_train_background, path_val):
 
 if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-    IOU = 0.3
-    path_train = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU),'/train/'])
-    path_val = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU),'/val/'])
+    IOU_pos, IOU_neg = 0.7, 0.3
+    path_train = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU_pos),'/train/'])
+    path_val = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU_pos),'/val/'])
 
     print("Start to prepare dataset")
     annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")
     datasets = Data(annotations)
-    prepare_data(datasets, annotations, threthoud = 0.3, save_path = path_train)
+    prepare_data(datasets, annotations, threthoud_pos = IOU_pos, threthoud_neg =  IOU_neg, save_path = path_train)
     dataset_split(path_train + '1/', path_train + '0/', path_val)
