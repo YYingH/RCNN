@@ -14,6 +14,8 @@
             -- /FDDB
                 -- /FDDB-folds
                 -- /originalPics
+                    -- /2002
+                    -- /2003
             -- /FDDB_crop
                 -- /iou_0.5
                     -- /train
