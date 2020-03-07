@@ -38,5 +38,4 @@
     5. run train_svm.py, training the svm classifier using extracted featuremap from CNN.
     6. run demo.py to see result:
 ## Result
-
-![Result](result1.jpg)
+![Result](result.png)
