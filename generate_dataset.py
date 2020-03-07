@@ -88,8 +88,14 @@ def dataset_split(path_train_face, path_train_background, path_val):
 if __name__ == "__main__":
     PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
     IOU_pos, IOU_neg = 0.7, 0.3
+
     path_train = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU_pos),'/train/'])
     path_val = ''.join([PROJECT_ROOT, '/data/FDDB_crop/iou_',str(IOU_pos),'/val/'])
+
+    for path in [path_train, path_val]:
+        for label in ['0/', '1/']:
+            if not os.path.exists(path + label):
+                os.makedirs(path)
 
     print("Start to prepare dataset")
     annotations = read_from_file(PROJECT_ROOT + "/data/FDDB/FDDB-folds/")

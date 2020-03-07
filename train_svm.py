@@ -5,7 +5,7 @@ import torch.nn as nn
 from PIL import Image
 from sklearn.svm import LinearSVC
 from torchvision import transforms
-from GoogLeNet import GoogLeNet, Inception, GlobalAvgPool2d, FlattenLayer
+from GoogLeNet import GoogLeNet
 from utils import read_from_file
 from torchvision import datasets 
 from sklearn.model_selection import train_test_split

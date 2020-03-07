@@ -118,6 +118,8 @@ def crop_image(image_dir, gt, image = None):
 
 
 
+
+
 def load_classify_data(train_dir, val_dir, batch_size, input_size):
     train_transforms = transforms.Compose([
         transforms.Pad(padding = 16),
