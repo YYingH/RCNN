@@ -1,4 +1,6 @@
-# Fast-RCNN
+# RCNN
+
+This project is a simple implementation of R-CNN in the Pytorch version. It replaces the AlexNet with GoogLeNet for feature extraction and applies svm to classify the presence of the object within that candidate region proposal. Because it uses the original selective search method, therefore, the recognition result is not as good as the newest algorithm, and the training is also troublesome. Although this algorithm now seems a little out of date, it is still worth learning.
 
 ## Usage
     
