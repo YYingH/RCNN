@@ -53,7 +53,7 @@ def prepare_data(datasets, annotations, threthoud_pos, threthoud_neg, save_path)
             if len(img) == 0:
                 continue
             for gt in gts:
-                ious.append(IOU_calculator(x+2/w, y+h/2, w, h,
+                ious.append(IOU_calculator(x+w/2, y+h/2, w, h,
                     gt[0]+gt[2]/2, gt[1]+gt[3]/2, gt[2], gt[3]))
             if max(ious) > threthoud_pos:
                 COUNT_FACE += 1
